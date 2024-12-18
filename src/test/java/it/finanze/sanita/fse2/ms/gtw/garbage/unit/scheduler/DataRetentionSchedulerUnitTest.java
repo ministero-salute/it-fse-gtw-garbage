@@ -133,6 +133,7 @@ class DataRetentionSchedulerUnitTest {
 	void runDeleteTransactions(final int size) {
 		
 		mockConfigurationItems(0, 0, HttpStatus.OK, RetentionCase.SUCCESS);
+		when(config.isRemoveEds()).thenReturn(true);
 		given(retentionCFG.getQueryLimit()).willReturn(size);
 
 		transactionsPreparationItems(size, false, getHoursAfterInsertion());
@@ -397,6 +398,7 @@ class DataRetentionSchedulerUnitTest {
 	void noDeletion() {
 		final int size = 500;
 		mockConfigurationItems(getHoursAfterInsertion() + 1, 0, HttpStatus.OK, RetentionCase.SUCCESS);
+		when(config.isRemoveEds()).thenReturn(true);
 		given(retentionCFG.getQueryLimit()).willReturn(size);
 
 		transactionsPreparationItems(size, true, getHoursAfterInsertion());
@@ -417,6 +419,7 @@ class DataRetentionSchedulerUnitTest {
 	void deleteOkState() {
 		final int size = 500;
 		mockConfigurationItems(getHoursAfterInsertion(), getHoursAfterInsertion()* 2, HttpStatus.OK, RetentionCase.SUCCESS);
+		when(config.isRemoveEds()).thenReturn(true);
 		given(retentionCFG.getQueryLimit()).willReturn(size);
 
 		transactionsPreparationItems(size, true, getHoursAfterInsertion() + 1);
