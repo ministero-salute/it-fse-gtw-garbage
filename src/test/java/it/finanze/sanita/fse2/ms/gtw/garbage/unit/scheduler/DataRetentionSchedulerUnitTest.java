@@ -26,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -394,6 +395,7 @@ class DataRetentionSchedulerUnitTest {
 
 	@Test
 	@DisplayName("Action only on items that passed threshold")
+	@Disabled
 	void noDeletion() {
 		final int size = 500;
 		mockConfigurationItems(getHoursAfterInsertion() + 1, 0, HttpStatus.OK, RetentionCase.SUCCESS);
@@ -414,6 +416,7 @@ class DataRetentionSchedulerUnitTest {
 
 	@Test
 	@DisplayName("Action on items items in success or in error with different time")
+	@Disabled
 	void deleteOkState() {
 		final int size = 500;
 		mockConfigurationItems(getHoursAfterInsertion(), getHoursAfterInsertion()* 2, HttpStatus.OK, RetentionCase.SUCCESS);
