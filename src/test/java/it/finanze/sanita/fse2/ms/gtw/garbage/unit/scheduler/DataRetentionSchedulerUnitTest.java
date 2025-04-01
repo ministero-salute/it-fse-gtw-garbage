@@ -15,6 +15,7 @@ import com.mongodb.MongoException;
 import it.finanze.sanita.fse2.ms.gtw.garbage.config.Constants;
 import it.finanze.sanita.fse2.ms.gtw.garbage.config.RetentionCFG;
 import it.finanze.sanita.fse2.ms.gtw.garbage.dto.ConfigItemDTO;
+import it.finanze.sanita.fse2.ms.gtw.garbage.repository.ITransactionsRepo;
 import it.finanze.sanita.fse2.ms.gtw.garbage.repository.entity.*;
 import it.finanze.sanita.fse2.ms.gtw.garbage.scheduler.CFGItemsRetentionScheduler;
 import it.finanze.sanita.fse2.ms.gtw.garbage.scheduler.DataRetentionScheduler;
@@ -26,7 +27,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -56,6 +56,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static it.finanze.sanita.fse2.ms.gtw.garbage.client.routes.base.ClientRoutes.Config.PROPS_NAME_ITEMS_RETENTION_DAY;
 import static it.finanze.sanita.fse2.ms.gtw.garbage.client.routes.base.ClientRoutes.Config.PROPS_NAME_VALD_DOCS_RETENTION_DAY;
@@ -115,6 +116,9 @@ class DataRetentionSchedulerUnitTest {
 
 	@MockBean
 	IConfigSRV config;
+
+	@SpyBean
+	ITransactionsRepo transactionsRepo;
 
 	@BeforeEach
 	void setup() {
@@ -395,13 +399,14 @@ class DataRetentionSchedulerUnitTest {
 
 	@Test
 	@DisplayName("Action only on items that passed threshold")
-	@Disabled
 	void noDeletion() {
 		final int size = 500;
 		mockConfigurationItems(getHoursAfterInsertion() + 1, 0, HttpStatus.OK, RetentionCase.SUCCESS);
 		given(retentionCFG.getQueryLimit()).willReturn(size);
+		when(config.isRemoveEds()).thenReturn(true);
 
 		transactionsPreparationItems(size, true, getHoursAfterInsertion());
+
 
 		List<TransactionEventsETY> transactions = transactionTemplate.findAll(TransactionEventsETY.class);
 		assumeTrue(!CollectionUtils.isEmpty(transactions), "Transactions should be inserted before testing the deletion");
@@ -416,11 +421,11 @@ class DataRetentionSchedulerUnitTest {
 
 	@Test
 	@DisplayName("Action on items items in success or in error with different time")
-	@Disabled
 	void deleteOkState() {
 		final int size = 500;
 		mockConfigurationItems(getHoursAfterInsertion(), getHoursAfterInsertion()* 2, HttpStatus.OK, RetentionCase.SUCCESS);
 		given(retentionCFG.getQueryLimit()).willReturn(size);
+		when(config.isRemoveEds()).thenReturn(true);
 
 		transactionsPreparationItems(size, true, getHoursAfterInsertion() + 1);
 		transactionsPreparationItems(size, false, getHoursAfterInsertion() + 1);
@@ -430,6 +435,11 @@ class DataRetentionSchedulerUnitTest {
 
 		List<IniEdsInvocationETY> data = dataTemplate.findAll(IniEdsInvocationETY.class);
 		assumeTrue(data.size() == size*2, "Data should be inserted before testing the deletion.");
+		doReturn(
+				transactions.stream()
+						.filter(t -> "SUCCESS".equals(t.getEventStatus()))
+						.collect(Collectors.toList())
+		).when(transactionsRepo).findExpiringTransactionData(anyString());
 		retentionScheduler.run();
 
 		transactions = transactionTemplate.findAll(TransactionEventsETY.class);
