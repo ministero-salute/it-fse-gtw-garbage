@@ -36,7 +36,7 @@ import com.mongodb.client.MongoClients;
 import net.javacrumbs.shedlock.core.LockProvider;
 import net.javacrumbs.shedlock.provider.mongo.MongoLockProvider;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 @Configuration
 public class MongoDatabaseCFG {

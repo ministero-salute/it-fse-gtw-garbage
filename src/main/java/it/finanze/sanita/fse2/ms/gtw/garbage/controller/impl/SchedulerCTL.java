@@ -19,7 +19,7 @@ import it.finanze.sanita.fse2.ms.gtw.garbage.scheduler.ValidatedDocumentRetentio
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 
 @RestController

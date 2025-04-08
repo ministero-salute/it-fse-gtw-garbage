@@ -13,7 +13,7 @@ package it.finanze.sanita.fse2.ms.gtw.garbage.repository.entity;
 
 import java.util.Date;
 
-import javax.validation.constraints.Size;
+import jakarta.validation.constraints.Size;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;

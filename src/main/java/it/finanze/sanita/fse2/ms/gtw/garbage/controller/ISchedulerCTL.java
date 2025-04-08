@@ -11,7 +11,7 @@
  */
 package it.finanze.sanita.fse2.ms.gtw.garbage.controller;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import it.finanze.sanita.fse2.ms.gtw.garbage.dto.LogTraceInfoDTO;
 import org.springframework.http.MediaType;
