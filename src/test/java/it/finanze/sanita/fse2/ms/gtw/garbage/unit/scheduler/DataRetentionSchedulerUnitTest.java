@@ -11,19 +11,35 @@
  */
 package it.finanze.sanita.fse2.ms.gtw.garbage.unit.scheduler;
 
-import com.mongodb.MongoException;
-import it.finanze.sanita.fse2.ms.gtw.garbage.config.Constants;
-import it.finanze.sanita.fse2.ms.gtw.garbage.config.RetentionCFG;
-import it.finanze.sanita.fse2.ms.gtw.garbage.dto.ConfigItemDTO;
-import it.finanze.sanita.fse2.ms.gtw.garbage.repository.ITransactionsRepo;
-import it.finanze.sanita.fse2.ms.gtw.garbage.repository.entity.*;
-import it.finanze.sanita.fse2.ms.gtw.garbage.scheduler.CFGItemsRetentionScheduler;
-import it.finanze.sanita.fse2.ms.gtw.garbage.scheduler.DataRetentionScheduler;
-import it.finanze.sanita.fse2.ms.gtw.garbage.scheduler.ValidatedDocumentRetentionScheduler;
-import it.finanze.sanita.fse2.ms.gtw.garbage.service.IConfigSRV;
-import it.finanze.sanita.fse2.ms.gtw.garbage.utility.DateUtility;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
+import static it.finanze.sanita.fse2.ms.gtw.garbage.client.routes.base.ClientRoutes.Config.PROPS_NAME_ITEMS_RETENTION_DAY;
+import static it.finanze.sanita.fse2.ms.gtw.garbage.client.routes.base.ClientRoutes.Config.PROPS_NAME_VALD_DOCS_RETENTION_DAY;
+import static it.finanze.sanita.fse2.ms.gtw.garbage.config.Constants.ConfigItems.SUCCESS_TRANSACTION_RETENTION_HOURS;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,8 +52,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpEntity;
@@ -45,27 +59,35 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneOffset;
-import java.util.*;
-import java.util.stream.Collectors;
+import com.mongodb.MongoException;
 
-import static it.finanze.sanita.fse2.ms.gtw.garbage.client.routes.base.ClientRoutes.Config.PROPS_NAME_ITEMS_RETENTION_DAY;
-import static it.finanze.sanita.fse2.ms.gtw.garbage.client.routes.base.ClientRoutes.Config.PROPS_NAME_VALD_DOCS_RETENTION_DAY;
-import static it.finanze.sanita.fse2.ms.gtw.garbage.config.Constants.ConfigItems.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
+import it.finanze.sanita.fse2.ms.gtw.garbage.config.Constants;
+import it.finanze.sanita.fse2.ms.gtw.garbage.config.RetentionCFG;
+import it.finanze.sanita.fse2.ms.gtw.garbage.dto.ConfigItemDTO;
+import it.finanze.sanita.fse2.ms.gtw.garbage.repository.ITransactionsRepo;
+import it.finanze.sanita.fse2.ms.gtw.garbage.repository.entity.DictionaryETY;
+import it.finanze.sanita.fse2.ms.gtw.garbage.repository.entity.IniEdsInvocationETY;
+import it.finanze.sanita.fse2.ms.gtw.garbage.repository.entity.SchemaETY;
+import it.finanze.sanita.fse2.ms.gtw.garbage.repository.entity.SchematronETY;
+import it.finanze.sanita.fse2.ms.gtw.garbage.repository.entity.TerminologyETY;
+import it.finanze.sanita.fse2.ms.gtw.garbage.repository.entity.TransactionEventsETY;
+import it.finanze.sanita.fse2.ms.gtw.garbage.repository.entity.TransformETY;
+import it.finanze.sanita.fse2.ms.gtw.garbage.repository.entity.ValidatedDocumentsETY;
+import it.finanze.sanita.fse2.ms.gtw.garbage.scheduler.CFGItemsRetentionScheduler;
+import it.finanze.sanita.fse2.ms.gtw.garbage.scheduler.DataRetentionScheduler;
+import it.finanze.sanita.fse2.ms.gtw.garbage.scheduler.ValidatedDocumentRetentionScheduler;
+import it.finanze.sanita.fse2.ms.gtw.garbage.service.IConfigSRV;
+import it.finanze.sanita.fse2.ms.gtw.garbage.utility.DateUtility;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  *
@@ -92,32 +114,32 @@ class DataRetentionSchedulerUnitTest {
 	@Autowired
 	ValidatedDocumentRetentionScheduler validatedDocumentRetentionScheduler;
 
-	@SpyBean
+	@MockitoSpyBean
 	@Qualifier("mongo-template-data")
 	MongoTemplate dataTemplate;	
 	
-	@SpyBean
+	@MockitoSpyBean
 	@Qualifier("mongo-template-transaction")
 	MongoTemplate transactionTemplate;
 
-	@SpyBean
+	@MockitoSpyBean
 	@Qualifier("mongo-template-rules")
 	MongoTemplate rulesTemplate;
 
-	@SpyBean
+	@MockitoSpyBean
 	@Qualifier("mongo-template-valdoc")
 	MongoTemplate valdocTemplate;
 
-	@MockBean
+	@MockitoBean
 	RetentionCFG retentionCFG;
 
-	@SpyBean
+	@MockitoSpyBean
 	RestTemplate restTemplate;
 
-	@MockBean
+	@MockitoBean
 	IConfigSRV config;
 
-	@SpyBean
+	@MockitoSpyBean
 	ITransactionsRepo transactionsRepo;
 
 	@BeforeEach
