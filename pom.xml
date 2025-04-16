@@ -134,22 +134,32 @@
 			<version>4.42.0</version>
 		</dependency>
 
-		 <!-- Micrometer Prometheus registry -->
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-registry-prometheus</artifactId>
-        </dependency>
+		<!-- OPEN TELEMETRY -->
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-observation</artifactId>
+		</dependency>
 
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing</artifactId>
-        </dependency>
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-registry-otlp</artifactId>
+		</dependency>
 
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing-bridge-otel</artifactId>
-        </dependency>
-			
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-exporter-otlp</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-tracing</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-tracing-bridge-otel</artifactId>
+		</dependency>
+		<!-- OPEN TELEMETRY -->
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -244,28 +254,36 @@
 								<taskdef
 									resource="net/sf/antcontrib/antcontrib.properties" />
 								<if>
-									<available file="infrastructure" />
+									<available
+										file="infrastructure" />
 									<then>
-										<!-- copy common resources of server
+										<!-- copy common
+										resources of server
 										runtime to project build directory -->
 										<copy
 											todir="${container.output.runtime}"
-											overwrite="true" failonerror="false">
+											overwrite="true"
+											failonerror="false">
 											<fileset
 												dir="${config.infra}/runtime"
 												includes="**" />
 										</copy>
-										<!-- copy common resources of server
+										<!-- copy common
+										resources of server
 										runtime to project build directory -->
-										<copy todir="${container.output}"
+										<copy
+											todir="${container.output}"
 											overwrite="true"
 											failonerror="false">
-											<fileset dir="${project.basedir}"
+											<fileset
+												dir="${project.basedir}"
 												includes="Dockerfile" />
 										</copy>
-										<!-- copy common resources of server
+										<!-- copy common
+										resources of server
 										runtime to project build directory -->
-										<copy todir="${container.output}"
+										<copy
+											todir="${container.output}"
 											overwrite="true"
 											failonerror="false">
 											<fileset
