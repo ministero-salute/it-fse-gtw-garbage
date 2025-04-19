@@ -11,15 +11,16 @@
  */
 package it.finanze.sanita.fse2.ms.gtw.garbage.config;
 
-/**
- *
- */
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class Constants {
 	
 	public static final String SEND_TO_INI = "SEND_TO_INI";
 	public static final String EDS_WORKFLOW = "EDS_WORKFLOW";
 
-	
+	@NoArgsConstructor(access = AccessLevel.PRIVATE)
 	public static final class Collections {
 
 			public static final String TRANSACTION_DATA = "transaction_data";
@@ -38,20 +39,16 @@ public final class Constants {
 			
 			public static final String DICTIONARY = "dictionary";
 
-		private Collections() {
-
-		}
 	}
 
-
+	@NoArgsConstructor(access = AccessLevel.PRIVATE)
 	public static final class ConfigItems {
 
 		public static final String SUCCESS_TRANSACTION_RETENTION_HOURS = "SUCCESS";
 
-		private ConfigItems() {
-		}
 	}
 
+	@NoArgsConstructor(access = AccessLevel.PRIVATE)
 	public static final class Profile {
 
 		public static final String TEST = "test";
@@ -60,20 +57,11 @@ public final class Constants {
 
 		public static final String DEV = "dev";
 
-		/**
-		 * Constructor.
-		 */
-		private Profile() {
-			// This method is intentionally left blank.
-		}
 
 	}
-
-	/**
-	 * Constants.
-	 */
-	private Constants() {
-
+	
+	@NoArgsConstructor(access = AccessLevel.PRIVATE)
+	public static final class Properties {
+		public static final String MS_NAME = "gtw-config";
 	}
-
 }
