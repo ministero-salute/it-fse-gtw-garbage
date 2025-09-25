@@ -34,7 +34,6 @@ import java.util.stream.Collectors;
 public class ValidatedDocumentRepo implements IValidatedDocumentRepo {
 
 	@Autowired
-	@Qualifier("mongo-template-valdoc")
 	private transient MongoTemplate mongoTemplate;
 
 	@Autowired

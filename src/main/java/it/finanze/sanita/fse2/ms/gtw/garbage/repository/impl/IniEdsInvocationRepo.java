@@ -14,7 +14,6 @@ package it.finanze.sanita.fse2.ms.gtw.garbage.repository.impl;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -33,7 +32,6 @@ public class IniEdsInvocationRepo implements IIniEdsInvocationRepo {
 
 
 	@Autowired
-	@Qualifier("mongo-template-data")
 	private MongoTemplate mongoTemplate;
 
 
@@ -45,7 +43,3 @@ public class IniEdsInvocationRepo implements IIniEdsInvocationRepo {
 	}
 
 }
-
-
-//Transaction data 
-//Ini_eds_invocation

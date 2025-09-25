@@ -37,7 +37,6 @@ import lombok.extern.slf4j.Slf4j;
 public class TransactionsRepo implements ITransactionsRepo {
 
 	@Autowired
-	@Qualifier("mongo-template-transaction")
 	private MongoTemplate mongoTemplate;
 
     @Autowired

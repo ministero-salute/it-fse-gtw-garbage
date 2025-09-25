@@ -11,10 +11,11 @@
  */
 package it.finanze.sanita.fse2.ms.gtw.garbage.repository.impl;
 
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+
 import java.util.Date;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
@@ -26,14 +27,11 @@ import it.finanze.sanita.fse2.ms.gtw.garbage.repository.ICfgItemsRetentionRepo;
 import it.finanze.sanita.fse2.ms.gtw.garbage.repository.entity.DictionaryETY;
 import lombok.extern.slf4j.Slf4j;
 
-import static org.springframework.data.mongodb.core.query.Criteria.*;
-
 @Slf4j
 @Repository
 public class CfgItemsRetentionRepo implements ICfgItemsRetentionRepo {
 
 	
-	@Qualifier("mongo-template-rules")
 	@Autowired
 	MongoTemplate mongoTemplate;
  
