@@ -20,7 +20,7 @@ public interface ICfgItemsRetentionRepoSRV {
 	 * Metodo che determina le regole di retention e le applica eliminando dati sul
 	 * gtw-rules-db.
 	 * 
-	 * @return true in caso di riuscita.
+	 * @return number of configuration documents deleted in this batch
 	 */
-	void deleteCFGItems(int day);
+	long deleteCFGItems(int day);
 }

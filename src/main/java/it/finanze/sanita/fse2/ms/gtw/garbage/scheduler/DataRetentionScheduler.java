@@ -16,33 +16,29 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import it.finanze.sanita.fse2.ms.gtw.garbage.service.IDataRetentionSRV;
+import it.finanze.sanita.fse2.ms.gtw.garbage.config.RetentionCFG;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 
-/**
- *
- */
 @Slf4j
 @Component
 public class DataRetentionScheduler {
 	
     @Autowired
     private IDataRetentionSRV retentionSRV;
+
+    @Autowired
+    private RetentionCFG retentionCfg;
     
     @Scheduled(cron = "${scheduler.data-retention}")
-	@SchedulerLock(name = "invokeDataRetentionScheduler" , lockAtMostFor = "60m")
+	@SchedulerLock(name = "invokeDataRetentionScheduler" , lockAtMostFor = "120m")
 	public void action() {
 		run();
 	}
 
     public void run() {
-    	log.debug("Data Retention Scheduler - Retention Scheduler starting");
-    	try {
-    		retentionSRV.deleteTransactionData();
-    	} catch (Exception e) {
-    		log.warn("Data Retention Scheduler - Error while executing data retention", e);
-    	}
-    	log.debug("Data Retention Scheduler - Retention Scheduler finished");
+        RetentionBatchRunner.run("Transaction and invocation", retentionCfg.getQueryLimit(),
+                retentionSRV::deleteTransactionData);
     }
     
      

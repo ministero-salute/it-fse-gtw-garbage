@@ -12,6 +12,7 @@
 package it.finanze.sanita.fse2.ms.gtw.garbage.scheduler;
 
 import it.finanze.sanita.fse2.ms.gtw.garbage.service.IConfigSRV;
+import it.finanze.sanita.fse2.ms.gtw.garbage.config.RetentionCFG;
 import it.finanze.sanita.fse2.ms.gtw.garbage.service.IValidatedDocumentRetentionSRV;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
@@ -30,21 +31,23 @@ public class ValidatedDocumentRetentionScheduler {
 	@Autowired
 	private IConfigSRV configSRV;
 
+	@Autowired
+	private RetentionCFG retentionCfg;
+
 	@Scheduled(cron = "${scheduler.valdoc-retention}")
-	@SchedulerLock(name = "invokeFseRetentionScheduler", lockAtMostFor = "60m")
+	@SchedulerLock(name = "invokeFseRetentionScheduler", lockAtMostFor = "120m")
 	public void action() {
 		run();
 	}
 
 	public void run() {
-		log.debug("ValidatedDocument Retention Scheduler - Retention Scheduler starting");
 		try {
-			// Eliminazione Validated Document in base alle configurazioni recuperate.
-			retentionSRV.deleteValidatedDocuments(configSRV.getValidatedDocRetentionDay());
+			int retentionDays = configSRV.getValidatedDocRetentionDay();
+			RetentionBatchRunner.run("Validated document", retentionCfg.getQueryLimit(),
+					() -> retentionSRV.deleteValidatedDocuments(retentionDays));
 		} catch (Exception e) {
 			log.error("ValidatedDocument Retention Scheduler - Error while executing data retention", e);
 		}
-		log.debug("ValidatedDocument Retention Scheduler - Retention Scheduler finished");
 	}
 
 }

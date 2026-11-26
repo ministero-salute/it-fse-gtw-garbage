@@ -46,9 +46,10 @@ public class DataRetentionSRV implements IDataRetentionSRV {
 	private IConfigSRV configSRV;
 
 	@Override
-	public void deleteTransactionData() {
+	public long deleteTransactionData() {
 
 		try {
+			long deleted = 0;
 			String finalStatus = configSRV.isRemoveEds() ? Constants.SEND_TO_INI : Constants.UAR_FINAL_STATUS;
 			List<TransactionEventsETY> expiringTransactions = transactionsRepo.findExpiringTransactionData(finalStatus);
 			Set<String> workflowIds = new LinkedHashSet<>(dataRepo.findWorkflowInstanceIdsMarkedForDeletion());
@@ -62,9 +63,11 @@ public class DataRetentionSRV implements IDataRetentionSRV {
 				dataRepo.markIdsForDeletion(wiiToDelete);
 				Integer deletedTransaction = transactionsRepo.deleteExpiringTransactionData(wiiToDelete);
 				log.info("DELETED transaction_data: {}", deletedTransaction);
+				deleted += deletedTransaction;
 			}
 			Integer deletedIniEds = dataRepo.deleteMarked();
 			log.info("DELETED ini_eds_invocation: {}", deletedIniEds);
+			return deleted + deletedIniEds;
 		} catch (Exception e) {
 			log.error("Errore durante esecuzione Engine Data Retention per il contenuto di 'transaction_data': ", e);
 			throw new BusinessException("Errore durante esecuzione Engine Data Retention per il contenuto di 'transaction_data': ", e);

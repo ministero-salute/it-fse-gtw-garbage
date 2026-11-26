@@ -20,9 +20,9 @@ public interface IDataRetentionSRV {
 	 * Metodo che determina le regole di retention e le applica eliminando dati sul
 	 * gtw-transactions-db.
 	 * 
-	 * @return Lista di Ids da eliminare.
+	 * @return number of transaction and invocation documents deleted in this batch
 	 */
-	void deleteTransactionData();
+	long deleteTransactionData();
 	
 
 }

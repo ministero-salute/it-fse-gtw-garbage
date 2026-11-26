@@ -17,5 +17,5 @@ public interface IValidatedDocumentRetentionSRV{
 	 * Metodo che determina le regole di retention e le applica eliminando dati sul
 	 * gtw-fse-db.
 	 */
-	void deleteValidatedDocuments(final int day);
+	long deleteValidatedDocuments(final int day);
 }

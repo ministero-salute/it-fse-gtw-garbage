@@ -31,11 +31,12 @@ public class ValidatedDocumentRetentionSRV implements IValidatedDocumentRetentio
 	private IValidatedDocumentRepo valDocRepo;
 
 	@Override
-	public void deleteValidatedDocuments(final int day) {
+	public long deleteValidatedDocuments(final int day) {
 		try {
 			Date dateToRemove = DateUtility.addDay(new Date(), -day);
 			List<String> wiiDeleted = valDocRepo.deleteValidatedDocuments(dateToRemove);
 			log.info("DELETED validated_documents: {}", wiiDeleted.size());
+			return wiiDeleted.size();
 		} catch (Exception e) {
 			log.error("Errore durante esecuzione Engine Fse Retention per il contenuto di 'validated_documents': ", e);
 			throw new BusinessException("Errore durante esecuzione Engine Fse Retention per il contenuto di 'validated_documents': ", e);

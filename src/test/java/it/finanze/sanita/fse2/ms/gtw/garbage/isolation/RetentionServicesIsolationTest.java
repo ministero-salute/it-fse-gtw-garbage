@@ -46,7 +46,9 @@ class RetentionServicesIsolationTest {
         TransactionEventsETY event = new TransactionEventsETY();
         event.setWorkflowInstanceId("workflow-1");
         when(transactionRepo.findExpiringTransactionData(anyString())).thenReturn(List.of(event));
-        transactions.deleteTransactionData();
+        when(transactionRepo.deleteExpiringTransactionData(List.of("workflow-1"))).thenReturn(3);
+        when(invocationRepo.deleteMarked()).thenReturn(2);
+        assertEquals(5L, transactions.deleteTransactionData());
         var order = inOrder(transactionRepo, invocationRepo);
         order.verify(transactionRepo).findExpiringTransactionData(removeEds ? Constants.SEND_TO_INI : Constants.UAR_FINAL_STATUS);
         order.verify(invocationRepo).findWorkflowInstanceIdsMarkedForDeletion();
@@ -59,7 +61,7 @@ class RetentionServicesIsolationTest {
     void nullSearchResultStillCleansUpMarkedInvocations() {
         when(config.isRemoveEds()).thenReturn(false);
         when(transactionRepo.findExpiringTransactionData(anyString())).thenReturn(null);
-        transactions.deleteTransactionData();
+        assertEquals(0L, transactions.deleteTransactionData());
         verify(transactionRepo, never()).deleteExpiringTransactionData(any());
         verify(invocationRepo).findWorkflowInstanceIdsMarkedForDeletion();
         verify(invocationRepo).deleteMarked();
@@ -70,7 +72,7 @@ class RetentionServicesIsolationTest {
     void emptySearchStillCleansUpMarkedInvocations() {
         when(config.isRemoveEds()).thenReturn(false);
         when(transactionRepo.findExpiringTransactionData(anyString())).thenReturn(List.of());
-        transactions.deleteTransactionData();
+        assertEquals(0L, transactions.deleteTransactionData());
         verify(transactionRepo, never()).deleteExpiringTransactionData(any());
         verify(invocationRepo).findWorkflowInstanceIdsMarkedForDeletion();
         verify(invocationRepo).deleteMarked();
@@ -157,7 +159,7 @@ class RetentionServicesIsolationTest {
     void deletesDocumentsOlderThanConfiguredCalendarDaysWithoutTouchingInvocations() {
         Date before = DateUtility.addDay(new Date(), -7);
         when(documentRepo.deleteValidatedDocuments(any())).thenReturn(List.of("w1", "w2"));
-        documents.deleteValidatedDocuments(7);
+        assertEquals(2L, documents.deleteValidatedDocuments(7));
         var cutoff = ArgumentCaptor.forClass(Date.class);
         verify(documentRepo).deleteValidatedDocuments(cutoff.capture());
         assertFalse(cutoff.getValue().before(before));
@@ -177,7 +179,7 @@ class RetentionServicesIsolationTest {
     void noExpiredDocumentsDoesNotTouchInvocations() {
         when(documentRepo.deleteValidatedDocuments(any())).thenReturn(List.of());
 
-        assertDoesNotThrow(() -> documents.deleteValidatedDocuments(1));
+        assertEquals(0L, documents.deleteValidatedDocuments(1));
 
         verify(documentRepo).deleteValidatedDocuments(any());
         verifyNoInteractions(invocationRepo);
@@ -185,7 +187,9 @@ class RetentionServicesIsolationTest {
 
     @Test
     void deletesAllConfigurationTypesUsingOneCutoff() {
-        items.deleteCFGItems(30);
+        when(itemRepo.deleteCfgItems(any(), any())).thenReturn(2);
+        when(itemRepo.deleteTerminology(any())).thenReturn(3);
+        assertEquals(11L, items.deleteCFGItems(30));
         var cutoff = ArgumentCaptor.forClass(Date.class);
         verify(itemRepo).deleteCfgItems(cutoff.capture(), eq(SchemaETY.class));
         Date date = cutoff.getValue();

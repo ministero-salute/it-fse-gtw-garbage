@@ -9,6 +9,7 @@ import io.opentelemetry.api.trace.*;
 import it.finanze.sanita.fse2.ms.gtw.garbage.controller.impl.*;
 import it.finanze.sanita.fse2.ms.gtw.garbage.scheduler.*;
 import it.finanze.sanita.fse2.ms.gtw.garbage.service.*;
+import it.finanze.sanita.fse2.ms.gtw.garbage.config.RetentionCFG;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -26,15 +27,20 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 class ControllersIsolationTest {
     @Autowired SchedulerCTL controller;
     @Autowired LivenessCheckCTL health;
+    @Autowired DataRetentionScheduler transactionScheduler;
+    @Autowired ValidatedDocumentRetentionScheduler documentScheduler;
+    @Autowired CFGItemsRetentionScheduler itemScheduler;
     @MockitoBean IDataRetentionSRV transactions;
     @MockitoBean IValidatedDocumentRetentionSRV documents;
     @MockitoBean ICfgItemsRetentionRepoSRV items;
     @MockitoBean IConfigSRV config;
     @MockitoBean Tracer tracer;
+    @MockitoBean RetentionCFG retentionCfg;
     MockMvc mvc;
 
     @BeforeEach
     void setup() {
+        when(retentionCfg.getQueryLimit()).thenReturn(25);
         mvc = MockMvcBuilders.standaloneSetup(controller, health).build();
     }
 
@@ -98,5 +104,60 @@ class ControllersIsolationTest {
     void schedulerEndpointRejectsWrongMethod() throws Exception {
         mvc.perform(get("/run-scheduler")).andExpect(status().isMethodNotAllowed());
         verifyNoInteractions(transactions);
+    }
+
+    @Test
+    void allSchedulersDrainMultipleBatchesIncludingPartialBatchesUntilEmpty() {
+        when(config.getValidatedDocRetentionDay()).thenReturn(7);
+        when(config.getConfigItemsRetentionDay()).thenReturn(30);
+        when(transactions.deleteTransactionData()).thenReturn(50L, 2L, 0L);
+        when(documents.deleteValidatedDocuments(7)).thenReturn(25L, 3L, 0L);
+        when(items.deleteCFGItems(30)).thenReturn(125L, 1L, 0L);
+
+        transactionScheduler.action();
+        documentScheduler.action();
+        itemScheduler.action();
+
+        verify(transactions, times(3)).deleteTransactionData();
+        verify(documents, times(3)).deleteValidatedDocuments(7);
+        verify(items, times(3)).deleteCFGItems(30);
+        verify(config).getValidatedDocRetentionDay();
+        verify(config).getConfigItemsRetentionDay();
+    }
+
+    @Test
+    void allSchedulersStopOnBatchFailureAndRetryOnNextRun() {
+        when(transactions.deleteTransactionData()).thenReturn(5L)
+                .thenThrow(new IllegalStateException("transaction failure")).thenReturn(0L);
+        when(documents.deleteValidatedDocuments(0)).thenReturn(5L)
+                .thenThrow(new IllegalStateException("document failure")).thenReturn(0L);
+        when(items.deleteCFGItems(0)).thenReturn(5L)
+                .thenThrow(new IllegalStateException("configuration failure")).thenReturn(0L);
+
+        assertDoesNotThrow(transactionScheduler::run);
+        assertDoesNotThrow(documentScheduler::run);
+        assertDoesNotThrow(itemScheduler::run);
+        verify(transactions, times(2)).deleteTransactionData();
+        verify(documents, times(2)).deleteValidatedDocuments(0);
+        verify(items, times(2)).deleteCFGItems(0);
+
+        transactionScheduler.run();
+        documentScheduler.run();
+        itemScheduler.run();
+        verify(transactions, times(3)).deleteTransactionData();
+        verify(documents, times(3)).deleteValidatedDocuments(0);
+        verify(items, times(3)).deleteCFGItems(0);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {0, -1})
+    void invalidChunkSizeDoesNotRunUnboundedDeletes(int chunkSize) {
+        when(retentionCfg.getQueryLimit()).thenReturn(chunkSize);
+
+        assertDoesNotThrow(transactionScheduler::run);
+        assertDoesNotThrow(documentScheduler::run);
+        assertDoesNotThrow(itemScheduler::run);
+
+        verifyNoInteractions(transactions, documents, items);
     }
 }

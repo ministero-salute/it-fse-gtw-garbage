@@ -33,19 +33,21 @@ public class CfgItemsRetentionSRV implements ICfgItemsRetentionRepoSRV {
 	private ICfgItemsRetentionRepo rulesRepo;
  
 	@Override
-	public void deleteCFGItems(final int day) {
+	public long deleteCFGItems(final int day) {
 		try {
 			Date dateToRemove = DateUtility.addDay(new Date(), -day);
 			Integer schemaDeletedRecords = rulesRepo.deleteCfgItems(dateToRemove, SchemaETY.class);
-			log.info("DELETE SCHEMA: " + schemaDeletedRecords);
+			log.info("DELETED schema: {}", schemaDeletedRecords);
 			Integer schematronDeletedRecords = rulesRepo.deleteCfgItems(dateToRemove, SchematronETY.class);
-			log.info("DELETE SCHEMATRON: " + schematronDeletedRecords);
+			log.info("DELETED schematron: {}", schematronDeletedRecords);
 			Integer transformDeletedRecords = rulesRepo.deleteCfgItems(dateToRemove, TransformETY.class);
-			log.info("DELETE TRANSFORM: " + transformDeletedRecords);
+			log.info("DELETED transform: {}", transformDeletedRecords);
 			Integer terminologyDeletedRecords = rulesRepo.deleteCfgItems(dateToRemove, TerminologyETY.class);
-			log.info("DELETE TERMINOLOGY: " + terminologyDeletedRecords);
+			log.info("DELETED terminology: {}", terminologyDeletedRecords);
 			Integer dictionaryDeletedRecords = rulesRepo.deleteTerminology(dateToRemove);
-			log.info("DELETE DICTIONARY: " + dictionaryDeletedRecords);
+			log.info("DELETED dictionary: {}", dictionaryDeletedRecords);
+			return (long) schemaDeletedRecords + schematronDeletedRecords + transformDeletedRecords
+					+ terminologyDeletedRecords + dictionaryDeletedRecords;
 		} catch (Exception e) {
 			log.error("Error while perform delete cfg items", e);
 			throw new BusinessException("Error while perform delete cfg items", e);

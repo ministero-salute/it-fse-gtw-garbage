@@ -170,6 +170,7 @@ class RepositoriesIsolationTest {
         var query = ArgumentCaptor.forClass(Query.class);
         verify(mongo).remove(query.capture(), eq(SchemaETY.class));
         assertEquals(new Document("deleted", true).append("last_update_date", new Document("$lt", cutoff)), query.getValue().getQueryObject());
+        assertEquals(25, query.getValue().getLimit());
     }
 
     @Test
@@ -180,6 +181,7 @@ class RepositoriesIsolationTest {
         var query = ArgumentCaptor.forClass(Query.class);
         verify(mongo).remove(query.capture(), eq(DictionaryETY.class));
         assertEquals(new Document("deleted", true).append("creation_date", new Document("$lt", cutoff)), query.getValue().getQueryObject());
+        assertEquals(25, query.getValue().getLimit());
     }
 
     @Test

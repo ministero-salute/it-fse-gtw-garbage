@@ -23,6 +23,7 @@ import org.springframework.stereotype.Repository;
 import com.mongodb.client.result.DeleteResult;
 
 import it.finanze.sanita.fse2.ms.gtw.garbage.exceptions.BusinessException;
+import it.finanze.sanita.fse2.ms.gtw.garbage.config.RetentionCFG;
 import it.finanze.sanita.fse2.ms.gtw.garbage.repository.ICfgItemsRetentionRepo;
 import it.finanze.sanita.fse2.ms.gtw.garbage.repository.entity.DictionaryETY;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +35,9 @@ public class CfgItemsRetentionRepo implements ICfgItemsRetentionRepo {
 	
 	@Autowired
 	MongoTemplate mongoTemplate;
+
+	@Autowired
+	private RetentionCFG retentionCfg;
  
  
 	@Override
@@ -43,6 +47,7 @@ public class CfgItemsRetentionRepo implements ICfgItemsRetentionRepo {
 		try {
 			Query query = new Query();
 			query.addCriteria(where("deleted").is(true).and("last_update_date").lt(dateToRemove));
+			query.limit(retentionCfg.getQueryLimit());
 
 			DeleteResult dRes = mongoTemplate.remove(query, clazz);
 			cfgItemsDeleted = (int)dRes.getDeletedCount();
@@ -60,6 +65,7 @@ public class CfgItemsRetentionRepo implements ICfgItemsRetentionRepo {
 		try {
 			Query query = new Query();
 			query.addCriteria(where("deleted").is(true).and("creation_date").lt(dateToRemove));
+			query.limit(retentionCfg.getQueryLimit());
 
 			DeleteResult dRes = mongoTemplate.remove(query, DictionaryETY.class);
 			cfgItemsDeleted = (int)dRes.getDeletedCount();
