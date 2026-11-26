@@ -15,7 +15,6 @@ import java.util.Date;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -54,8 +53,8 @@ public class TransactionsRepo implements ITransactionsRepo {
 			criteria.orOperator(
 					Criteria.where("eventType").is(eventType).and("eventStatus").is("SUCCESS"), 
 					Criteria.where("eventStatus").is("BLOCKING_ERROR"),
-					Criteria.where("eventStatus").is("BLOCKING_ERROR_MAX_RETRY")
-					);
+					Criteria.where("eventStatus").is("BLOCKING_ERROR_MAX_RETRY"));
+
 			criteria.and("expiring_date").lt(new Date());
 			query.addCriteria(criteria);
 			query.limit(retentionCfg.getQueryLimit());

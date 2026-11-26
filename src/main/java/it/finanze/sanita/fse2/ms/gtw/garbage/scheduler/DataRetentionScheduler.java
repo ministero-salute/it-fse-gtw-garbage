@@ -11,9 +11,6 @@
  */
 package it.finanze.sanita.fse2.ms.gtw.garbage.scheduler;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;

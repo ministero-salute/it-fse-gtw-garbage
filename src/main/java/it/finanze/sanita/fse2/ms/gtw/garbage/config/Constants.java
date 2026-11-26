@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 public final class Constants {
 	
 	public static final String SEND_TO_INI = "SEND_TO_INI";
-	public static final String EDS_WORKFLOW = "EDS_WORKFLOW";
+	public static final String UAR_FINAL_STATUS = "UAR_FINAL_STATUS";
 
 	@NoArgsConstructor(access = AccessLevel.PRIVATE)
 	public static final class Collections {

@@ -1,27 +1,29 @@
 package it.finanze.sanita.fse2.ms.gtw.garbage.service.impl;
 
+import static it.finanze.sanita.fse2.ms.gtw.garbage.client.routes.base.ClientRoutes.Config.PROPS_NAME_ITEMS_RETENTION_DAY;
+import static it.finanze.sanita.fse2.ms.gtw.garbage.client.routes.base.ClientRoutes.Config.PROPS_NAME_REMOVE_EDS_ENABLE;
+import static it.finanze.sanita.fse2.ms.gtw.garbage.client.routes.base.ClientRoutes.Config.PROPS_NAME_VALD_DOCS_RETENTION_DAY;
+import static it.finanze.sanita.fse2.ms.gtw.garbage.enums.ConfigItemTypeEnum.GARBAGE;
+import static it.finanze.sanita.fse2.ms.gtw.garbage.enums.ConfigItemTypeEnum.priority;
+
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
 import it.finanze.sanita.fse2.ms.gtw.garbage.client.IConfigClient;
 import it.finanze.sanita.fse2.ms.gtw.garbage.dto.ConfigItemDTO;
 import it.finanze.sanita.fse2.ms.gtw.garbage.dto.ConfigItemDTO.ConfigDataItemDTO;
 import it.finanze.sanita.fse2.ms.gtw.garbage.enums.ConfigItemTypeEnum;
 import it.finanze.sanita.fse2.ms.gtw.garbage.service.IConfigSRV;
 import it.finanze.sanita.fse2.ms.gtw.garbage.utility.ProfileUtility;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
 import jakarta.annotation.PostConstruct;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static it.finanze.sanita.fse2.ms.gtw.garbage.client.routes.base.ClientRoutes.Config.*;
-import static it.finanze.sanita.fse2.ms.gtw.garbage.dto.ConfigItemDTO.ConfigDataItemDTO;
-import static it.finanze.sanita.fse2.ms.gtw.garbage.enums.ConfigItemTypeEnum.GARBAGE;
-import static it.finanze.sanita.fse2.ms.gtw.garbage.enums.ConfigItemTypeEnum.priority;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service

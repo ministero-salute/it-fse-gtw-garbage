@@ -37,15 +37,15 @@ public class CfgItemsRetentionSRV implements ICfgItemsRetentionRepoSRV {
 		try {
 			Date dateToRemove = DateUtility.addDay(new Date(), -day);
 			Integer schemaDeletedRecords = rulesRepo.deleteCfgItems(dateToRemove, SchemaETY.class);
-			log.debug("DELETE SCHEMA: " + schemaDeletedRecords);
+			log.info("DELETE SCHEMA: " + schemaDeletedRecords);
 			Integer schematronDeletedRecords = rulesRepo.deleteCfgItems(dateToRemove, SchematronETY.class);
-			log.debug("DELETE SCHEMATRON: " + schematronDeletedRecords);
+			log.info("DELETE SCHEMATRON: " + schematronDeletedRecords);
 			Integer transformDeletedRecords = rulesRepo.deleteCfgItems(dateToRemove, TransformETY.class);
-			log.debug("DELETE TRANSFORM: " + transformDeletedRecords);
+			log.info("DELETE TRANSFORM: " + transformDeletedRecords);
 			Integer terminologyDeletedRecords = rulesRepo.deleteCfgItems(dateToRemove, TerminologyETY.class);
-			log.debug("DELETE TERMINOLOGY: " + terminologyDeletedRecords);
+			log.info("DELETE TERMINOLOGY: " + terminologyDeletedRecords);
 			Integer dictionaryDeletedRecords = rulesRepo.deleteTerminology(dateToRemove);
-			log.debug("DELETE DICTIONARY: " + dictionaryDeletedRecords);
+			log.info("DELETE DICTIONARY: " + dictionaryDeletedRecords);
 		} catch (Exception e) {
 			log.error("Error while perform delete cfg items", e);
 			throw new BusinessException("Error while perform delete cfg items", e);

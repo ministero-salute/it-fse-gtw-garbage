@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
@@ -47,37 +48,101 @@ class RetentionServicesIsolationTest {
         when(transactionRepo.findExpiringTransactionData(anyString())).thenReturn(List.of(event));
         transactions.deleteTransactionData();
         var order = inOrder(transactionRepo, invocationRepo);
-        order.verify(transactionRepo).findExpiringTransactionData(removeEds ? Constants.SEND_TO_INI : Constants.EDS_WORKFLOW);
+        order.verify(transactionRepo).findExpiringTransactionData(removeEds ? Constants.SEND_TO_INI : Constants.UAR_FINAL_STATUS);
+        order.verify(invocationRepo).findWorkflowInstanceIdsMarkedForDeletion();
+        order.verify(invocationRepo).markIdsForDeletion(List.of("workflow-1"));
         order.verify(transactionRepo).deleteExpiringTransactionData(List.of("workflow-1"));
-        order.verify(invocationRepo).deleteIds(List.of("workflow-1"));
+        order.verify(invocationRepo).deleteMarked();
     }
 
     @Test
-    void nullSearchResultDoesNotDeleteAnything() {
+    void nullSearchResultStillCleansUpMarkedInvocations() {
         when(config.isRemoveEds()).thenReturn(false);
         when(transactionRepo.findExpiringTransactionData(anyString())).thenReturn(null);
         transactions.deleteTransactionData();
         verify(transactionRepo, never()).deleteExpiringTransactionData(any());
-        verifyNoInteractions(invocationRepo);
+        verify(invocationRepo).findWorkflowInstanceIdsMarkedForDeletion();
+        verify(invocationRepo).deleteMarked();
+        verifyNoMoreInteractions(invocationRepo);
     }
 
     @Test
-    void emptySearchUsesOnlyAnEmptyIdList() {
+    void emptySearchStillCleansUpMarkedInvocations() {
         when(config.isRemoveEds()).thenReturn(false);
         when(transactionRepo.findExpiringTransactionData(anyString())).thenReturn(List.of());
         transactions.deleteTransactionData();
-        verify(transactionRepo).deleteExpiringTransactionData(List.of());
-        verify(invocationRepo).deleteIds(List.of());
+        verify(transactionRepo, never()).deleteExpiringTransactionData(any());
+        verify(invocationRepo).findWorkflowInstanceIdsMarkedForDeletion();
+        verify(invocationRepo).deleteMarked();
+        verifyNoMoreInteractions(invocationRepo);
     }
 
     @Test
     void transactionDeletionFailureStopsInvocationDeletionAndPreservesCause() {
         when(config.isRemoveEds()).thenReturn(true);
-        when(transactionRepo.findExpiringTransactionData(anyString())).thenReturn(List.of());
+        when(invocationRepo.findWorkflowInstanceIdsMarkedForDeletion()).thenReturn(List.of("workflow-1"));
         var failure = new IllegalStateException("Mongo unavailable");
         when(transactionRepo.deleteExpiringTransactionData(any())).thenThrow(failure);
         assertSame(failure, assertThrows(BusinessException.class, transactions::deleteTransactionData).getCause());
-        verifyNoInteractions(invocationRepo);
+        verify(invocationRepo).markIdsForDeletion(List.of("workflow-1"));
+        verify(invocationRepo, never()).deleteMarked();
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void retriesMarkedWorkflowsEvenWithoutExpiringTransactions(List<TransactionEventsETY> events) {
+        when(transactionRepo.findExpiringTransactionData(anyString())).thenReturn(events);
+        when(invocationRepo.findWorkflowInstanceIdsMarkedForDeletion()).thenReturn(List.of("pending"));
+
+        transactions.deleteTransactionData();
+
+        var order = inOrder(transactionRepo, invocationRepo);
+        order.verify(invocationRepo).markIdsForDeletion(List.of("pending"));
+        order.verify(transactionRepo).deleteExpiringTransactionData(List.of("pending"));
+        order.verify(invocationRepo).deleteMarked();
+    }
+
+    @Test
+    void mergesPendingAndNewWorkflowIdsWithoutDuplicates() {
+        var event = new TransactionEventsETY();
+        event.setWorkflowInstanceId("new");
+        when(transactionRepo.findExpiringTransactionData(anyString())).thenReturn(List.of(event, event));
+        when(invocationRepo.findWorkflowInstanceIdsMarkedForDeletion()).thenReturn(List.of("pending", "new"));
+
+        transactions.deleteTransactionData();
+
+        verify(invocationRepo).markIdsForDeletion(List.of("pending", "new"));
+        verify(transactionRepo).deleteExpiringTransactionData(List.of("pending", "new"));
+        verify(invocationRepo).deleteMarked();
+    }
+
+    @Test
+    void markingFailurePreventsBothDeletes() {
+        when(invocationRepo.findWorkflowInstanceIdsMarkedForDeletion()).thenReturn(List.of("pending"));
+        var failure = new IllegalStateException("mark failure");
+        doThrow(failure).when(invocationRepo).markIdsForDeletion(any());
+
+        assertSame(failure, assertThrows(BusinessException.class, transactions::deleteTransactionData).getCause());
+
+        verify(transactionRepo, never()).deleteExpiringTransactionData(any());
+        verify(invocationRepo, never()).deleteMarked();
+    }
+
+    @Test
+    void failedInvocationCleanupIsRetriedOnNextRun() {
+        when(invocationRepo.findWorkflowInstanceIdsMarkedForDeletion()).thenReturn(List.of("pending"));
+        var failure = new IllegalStateException("cleanup failure");
+        when(invocationRepo.deleteMarked()).thenThrow(failure).thenReturn(1);
+
+        assertSame(failure, assertThrows(BusinessException.class, transactions::deleteTransactionData).getCause());
+        transactions.deleteTransactionData();
+
+        var order = inOrder(transactionRepo, invocationRepo);
+        for (int attempt = 0; attempt < 2; attempt++) {
+            order.verify(invocationRepo).markIdsForDeletion(List.of("pending"));
+            order.verify(transactionRepo).deleteExpiringTransactionData(List.of("pending"));
+            order.verify(invocationRepo).deleteMarked();
+        }
     }
 
     @Test
@@ -89,7 +154,7 @@ class RetentionServicesIsolationTest {
     }
 
     @Test
-    void deletesDocumentsOlderThanConfiguredCalendarDaysAndTheirInvocations() {
+    void deletesDocumentsOlderThanConfiguredCalendarDaysWithoutTouchingInvocations() {
         Date before = DateUtility.addDay(new Date(), -7);
         when(documentRepo.deleteValidatedDocuments(any())).thenReturn(List.of("w1", "w2"));
         documents.deleteValidatedDocuments(7);
@@ -97,7 +162,7 @@ class RetentionServicesIsolationTest {
         verify(documentRepo).deleteValidatedDocuments(cutoff.capture());
         assertFalse(cutoff.getValue().before(before));
         assertFalse(cutoff.getValue().after(DateUtility.addDay(new Date(), -7)));
-        verify(invocationRepo).deleteIds(List.of("w1", "w2"));
+        verifyNoInteractions(invocationRepo);
     }
 
     @Test
@@ -109,11 +174,13 @@ class RetentionServicesIsolationTest {
     }
 
     @Test
-    void associatedInvocationFailureIsWrapped() {
-        when(documentRepo.deleteValidatedDocuments(any())).thenReturn(List.of("w1"));
-        var failure = new IllegalStateException("delete failure");
-        when(invocationRepo.deleteIds(any())).thenThrow(failure);
-        assertSame(failure, assertThrows(BusinessException.class, () -> documents.deleteValidatedDocuments(1)).getCause());
+    void noExpiredDocumentsDoesNotTouchInvocations() {
+        when(documentRepo.deleteValidatedDocuments(any())).thenReturn(List.of());
+
+        assertDoesNotThrow(() -> documents.deleteValidatedDocuments(1));
+
+        verify(documentRepo).deleteValidatedDocuments(any());
+        verifyNoInteractions(invocationRepo);
     }
 
     @Test

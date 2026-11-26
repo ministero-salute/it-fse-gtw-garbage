@@ -17,6 +17,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -123,6 +124,42 @@ class RepositoriesIsolationTest {
         var failure = new IllegalStateException("delete failure");
         when(mongo.remove(any(Query.class), eq(IniEdsInvocationETY.class))).thenThrow(failure);
         assertSame(failure, assertThrows(IllegalStateException.class, () -> invocations.deleteIds(List.of())));
+    }
+
+    @Test
+    void invocationMarkingPersistsFlagOnlyForRequestedWorkflows() {
+        invocations.markIdsForDeletion(List.of("w1", "w2"));
+
+        var query = ArgumentCaptor.forClass(Query.class);
+        var update = ArgumentCaptor.forClass(Update.class);
+        verify(mongo).updateMulti(query.capture(), update.capture(), eq(IniEdsInvocationETY.class));
+        assertEquals(new Document("workflow_instance_id", new Document("$in", List.of("w1", "w2"))),
+                query.getValue().getQueryObject());
+        assertEquals(new Document("$set", new Document("to_delete", true)), update.getValue().getUpdateObject());
+    }
+
+    @Test
+    void findsDistinctWorkflowIdsWithDeletionMarker() {
+        when(mongo.findDistinct(any(Query.class), eq("workflow_instance_id"), eq(IniEdsInvocationETY.class), eq(String.class)))
+                .thenReturn(List.of("w1"));
+
+        assertEquals(List.of("w1"), invocations.findWorkflowInstanceIdsMarkedForDeletion());
+
+        var query = ArgumentCaptor.forClass(Query.class);
+        verify(mongo).findDistinct(query.capture(), eq("workflow_instance_id"), eq(IniEdsInvocationETY.class), eq(String.class));
+        assertEquals(new Document("to_delete", true), query.getValue().getQueryObject());
+    }
+
+    @Test
+    void invocationCleanupOnlyRequiresDeletionMarker() {
+        when(mongo.remove(any(Query.class), eq(IniEdsInvocationETY.class))).thenReturn(DeleteResult.acknowledged(2));
+
+        assertEquals(2, invocations.deleteMarked());
+
+        var query = ArgumentCaptor.forClass(Query.class);
+        verify(mongo).remove(query.capture(), eq(IniEdsInvocationETY.class));
+        assertEquals(new Document("to_delete", true),
+                query.getValue().getQueryObject());
     }
 
     @Test

@@ -11,8 +11,10 @@
  */
 package it.finanze.sanita.fse2.ms.gtw.garbage.service.impl;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 import it.finanze.sanita.fse2.ms.gtw.garbage.service.IConfigSRV;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,16 +49,22 @@ public class DataRetentionSRV implements IDataRetentionSRV {
 	public void deleteTransactionData() {
 
 		try {
-			String finalStatus = configSRV.isRemoveEds() ? Constants.SEND_TO_INI : Constants.EDS_WORKFLOW;
-			List<TransactionEventsETY> transactionDataDeleted = transactionsRepo.findExpiringTransactionData(finalStatus);
-			
-			if(transactionDataDeleted!=null) {
-				List<String> wiiToDelete = transactionDataDeleted.stream().map(TransactionEventsETY::getWorkflowInstanceId).collect(Collectors.toList());
-				Integer deletedTransaction = transactionsRepo.deleteExpiringTransactionData(wiiToDelete);
-				log.debug("DELETED TRANSACTION:" + deletedTransaction);
-				Integer deletedIniEds = dataRepo.deleteIds(wiiToDelete);
-				log.debug("DELETED INI EDS:" + deletedIniEds);
+			String finalStatus = configSRV.isRemoveEds() ? Constants.SEND_TO_INI : Constants.UAR_FINAL_STATUS;
+			List<TransactionEventsETY> expiringTransactions = transactionsRepo.findExpiringTransactionData(finalStatus);
+			Set<String> workflowIds = new LinkedHashSet<>(dataRepo.findWorkflowInstanceIdsMarkedForDeletion());
+			if (expiringTransactions != null) {
+				expiringTransactions.stream().map(TransactionEventsETY::getWorkflowInstanceId).forEach(workflowIds::add);
 			}
+
+			if (!workflowIds.isEmpty()) {
+				List<String> wiiToDelete = new ArrayList<>(workflowIds);
+				// Persist the work before deleting transactions so interrupted runs can be retried.
+				dataRepo.markIdsForDeletion(wiiToDelete);
+				Integer deletedTransaction = transactionsRepo.deleteExpiringTransactionData(wiiToDelete);
+				log.info("DELETED transaction_data: {}", deletedTransaction);
+			}
+			Integer deletedIniEds = dataRepo.deleteMarked();
+			log.info("DELETED ini_eds_invocation: {}", deletedIniEds);
 		} catch (Exception e) {
 			log.error("Errore durante esecuzione Engine Data Retention per il contenuto di 'transaction_data': ", e);
 			throw new BusinessException("Errore durante esecuzione Engine Data Retention per il contenuto di 'transaction_data': ", e);

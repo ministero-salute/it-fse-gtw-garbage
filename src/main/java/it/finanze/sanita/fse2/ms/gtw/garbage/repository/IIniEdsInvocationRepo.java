@@ -16,5 +16,11 @@ import java.util.List;
 public interface IIniEdsInvocationRepo {
 	
 	int deleteIds(final List<String> ids);
+
+	void markIdsForDeletion(final List<String> ids);
+
+	List<String> findWorkflowInstanceIdsMarkedForDeletion();
+
+	int deleteMarked();
 	
 }

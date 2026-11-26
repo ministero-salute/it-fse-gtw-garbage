@@ -35,6 +35,9 @@ public class IniEdsInvocationETY {
 	@Field(name = "workflow_instance_id")
 	private String workflowInstanceId;
 
+	@Field(name = "to_delete")
+	private Boolean toDelete;
+
 	@Field(name = "riferimento_ini")
 	private String riferimentoIni;
 	

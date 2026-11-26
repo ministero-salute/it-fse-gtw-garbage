@@ -11,17 +11,17 @@
  */
 package it.finanze.sanita.fse2.ms.gtw.garbage.service.impl;
 
+import java.util.Date;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import it.finanze.sanita.fse2.ms.gtw.garbage.exceptions.BusinessException;
-import it.finanze.sanita.fse2.ms.gtw.garbage.repository.IIniEdsInvocationRepo;
 import it.finanze.sanita.fse2.ms.gtw.garbage.repository.IValidatedDocumentRepo;
 import it.finanze.sanita.fse2.ms.gtw.garbage.service.IValidatedDocumentRetentionSRV;
 import it.finanze.sanita.fse2.ms.gtw.garbage.utility.DateUtility;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.Date;
-import java.util.List;
 
 @Slf4j
 @Service
@@ -30,16 +30,12 @@ public class ValidatedDocumentRetentionSRV implements IValidatedDocumentRetentio
 	@Autowired
 	private IValidatedDocumentRepo valDocRepo;
 
-	@Autowired
-	private IIniEdsInvocationRepo dataRepo;
-
 	@Override
 	public void deleteValidatedDocuments(final int day) {
 		try {
 			Date dateToRemove = DateUtility.addDay(new Date(), -day);
 			List<String> wiiDeleted = valDocRepo.deleteValidatedDocuments(dateToRemove);
-			dataRepo.deleteIds(wiiDeleted);
-			log.debug("DELETE VALIDATED-DOCUMENT-DB:" + wiiDeleted.size());
+			log.info("DELETED validated_documents: {}", wiiDeleted.size());
 		} catch (Exception e) {
 			log.error("Errore durante esecuzione Engine Fse Retention per il contenuto di 'validated_documents': ", e);
 			throw new BusinessException("Errore durante esecuzione Engine Fse Retention per il contenuto di 'validated_documents': ", e);
