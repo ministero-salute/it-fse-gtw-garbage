@@ -31,7 +31,7 @@ public class DataRetentionScheduler {
     private RetentionCFG retentionCfg;
     
     @Scheduled(cron = "${scheduler.data-retention}")
-	@SchedulerLock(name = "invokeDataRetentionScheduler" , lockAtMostFor = "120m")
+	@SchedulerLock(name = "garbageSchedulerLock" , lockAtMostFor = "120m")
 	public void action() {
 		run();
 	}

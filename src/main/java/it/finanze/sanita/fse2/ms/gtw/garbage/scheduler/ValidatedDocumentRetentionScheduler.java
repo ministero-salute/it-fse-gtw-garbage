@@ -35,7 +35,7 @@ public class ValidatedDocumentRetentionScheduler {
 	private RetentionCFG retentionCfg;
 
 	@Scheduled(cron = "${scheduler.valdoc-retention}")
-	@SchedulerLock(name = "invokeFseRetentionScheduler", lockAtMostFor = "120m")
+	@SchedulerLock(name = "garbageSchedulerLock", lockAtMostFor = "120m")
 	public void action() {
 		run();
 	}

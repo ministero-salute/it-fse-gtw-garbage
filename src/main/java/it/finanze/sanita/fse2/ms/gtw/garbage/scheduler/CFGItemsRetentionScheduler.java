@@ -35,7 +35,7 @@ public class CFGItemsRetentionScheduler {
 	private RetentionCFG retentionCfg;
 
 	@Scheduled(cron = "${scheduler.rules-retention}")
-	@SchedulerLock(name = "invokeRulesRetentionScheduler", lockAtMostFor = "120m")
+	@SchedulerLock(name = "garbageSchedulerLock", lockAtMostFor = "120m")
 	public void action() {
 		run();
 	}
